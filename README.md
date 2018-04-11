@@ -43,12 +43,12 @@ We will make a cursory investigation about the Boston housing data and provide o
 
 Since the main goal of this project is to construct a working model which has the capability of predicting the value of houses, we will need to separate the dataset into **features** and the **target variable**. The **features**, `'RM'`, `'LSTAT'`, and `'PTRATIO'`, give us quantitative information about each data point. The **target variable**, `'MEDV'`, will be the variable we seek to predict. These are stored in `features` and `prices`, respectively.
 
-### Implementation: Calculate Statistics
+### Descriptive Statistics
 
 The code cells below implement the following : 
-- Calculate the minimum, maximum, mean, median, and standard deviation of `'MEDV'`, which is stored in `prices`.
-- Store each calculation in their respective variable.
-- Calculate correlation and plot scatter plots.
+- Calculates the minimum, maximum, mean, median, and standard deviation of `'MEDV'`, which is stored in `prices`.
+- Calculates correlation and plot scatter plots.
+- Plots a histogram of the features
 
 
 ```python
@@ -125,6 +125,23 @@ calc_corr_and_plot('PTRATIO')
 
 
 ![png](output_9_0.png)
+
+
+
+```python
+# Plot a histogram of the features
+plt.figure(figsize=(20, 5))
+plt.suptitle("Histogram of the features")
+
+for i, col in enumerate(features.columns):
+    plt.subplot(131 + i)
+    sns.distplot(data[col])
+    plt.axvline(data[col].mean(), linestyle='solid', linewidth=2)
+    plt.axvline(data[col].median(), linestyle='dashed', linewidth=2)
+```
+
+
+![png](output_10_0.png)
 
 
 ### Feature Observation
@@ -249,7 +266,7 @@ print "Training and testing split was successful."
 
 **Benefit to splitting a dataset into some ratio of training and testing subsets for a learning algorithm :**
 
-The benefit of splitting a dataset is that it allows us to measure which model is doing better. While the training points help the model to learn, the testing points help to determine how well these new points can be approximated by the model. Both underfitting and overfitting models will tend to do worse if there are more no. of testing points. On the other hand, a well fitted model will do well even if we increase the no. of testing points. The shape of this learning curve (using training and testing points) helps to determine whether the model is overfitting, underfitting or perfectly fitting.
+The purpose and benefit of having training and testing subsets from a dataset is the opportunity to quantify the model performance on an independent dataset and to check for overfitting. Evaluating and measuring the performance of the model over the testing subset provides estimations of the metrics that reflect how good the model predictions will be when the model is used to estimate the output using independent data (that was not used by a learning algorithm when the model was being tuned). If there is no testing subset available, there would be no way to estimate the performance of the model.
 
 ----
 
@@ -266,7 +283,7 @@ vs.ModelLearning(features, prices)
 ```
 
 
-![png](output_25_0.png)
+![png](output_26_0.png)
 
 
 ### Learning the Data
@@ -285,12 +302,12 @@ vs.ModelComplexity(X_train, y_train)
 ```
 
 
-![png](output_29_0.png)
+![png](output_30_0.png)
 
 
 ### Bias-Variance Tradeoff
-- At max depth of 1, the model suffers from high bias. It is a case of underfitting. From the graph, it is clear that the validation score is pretty low (< 40%), thus indicating that it is not complex enough.
-- At max depth of 10, the model suffers from high variance. It is a case of overfitting. From the graph, it is clear that the training score is significantly higher than the validation score, thus indicating that the model cannot generalize well.
+- At max depth of 1, the model suffers from high bias. From the graph, it is clear that the the testing and validation scores are both quite low (around 40%), thus indicating that it is a case of underfitting.
+- At max depth of 10, the model suffers from high variance.From the graph, it is clear that the training score is significantly higher than the validation score, thus indicating that it is a case of overfitting and the model failed to generalize well enough.
 
 ### Best-Guess Optimal Model
 
@@ -308,15 +325,37 @@ The Grid Search technique is a way of finding the best model (i.e. the best comb
 
 For example, in SVM, we have two hyper-parameters : kernel and C. We can put the different values of kernel (linear / polynomial) in different columns and in each row we can put different values of C. Using the grid search technique, we would then need to calculate the score for each combination of kernel and C, and subsequently, find the best among these combinations.
 
+**Disadvantages :**
+
+Since the Grid Search technique involves training on all possible combinations of parameters, one limitation is that it can be very computationally expensive when dealing with a large number of different hyperparameters and much bigger datasets. 
+
+There are two other alternative techniques that can also be used :
+
+- RandomizedSearchCV which can sample a given number of candidates from a parameter space with a specified distribution.
+- A train / validation / test split, and we can validate our model on the validation set. Often used with much bigger datasets.
+
+However, since our data-set is relatively small and the no. of hyperparameters are small, we'll go ahead with the Grid Search technique.
+
 ### Cross-Validation
 
 **k-fold cross-validation training technique**
 
 In the k-fold cross validation technique, we divide our data into 'k' buckets and train our model 'k' times. In each training iteration, we use a different bucket for testing, and the remaining data is used for training. The average performance score of all the 'k' iterations gives us the overall performance measure of the model.
 
-**Benefit of this technique for grid search when optimizing a model**
+Finally, after we get the results from hyper-parameter tuning from gridSearch with k-fold cross-validation, we run the model on the held out testing dataset to determine how this model would work with never before seen data.
+
+For example, a 10-fold cross-validation will involve the following steps : 
+
+- The training data is split into 10 folds.
+- We train a model on the 9 folds (i.e. k-1 folds), for 10 times (i.e. k times), and use the remaining fold as the validation set.
+- For each model we calculate the validation score (10 scores in this case)
+- Then at the end of the 10-fold cross-validation technique, all of the 10 validation scores are averaged together to get a single number indicating the overall score.
+
+**Benefits of this technique for grid search when optimizing a model**
 
 The problem with grid search is that it requires another subset of data - called the validation set in addition to the testing set, to calcualte the score in each cell. When the no. of training data points is less, this can lead to a wastage of data points. In such cases, we can use k-fold cross validation to solve this problem. The advantage of k-fold cross validation is that the 'validation set' is no longer required : k-1 parts of the training data is used for training and the remaining 1 part is used for validation. Since this is repeated k times, we make use of all the training data for both training and validation while still not breaking the fundamental rule of not using testing data for training purposes.
+
+Another additional benefit is to prevent overfitting from over tuning the model during grid search. There is a risk of overfitting on the test set because the parameters can be tweaked until the estimator performs optimally. CV comes in handy instead of using a validation set.
 
 ### Implementation: Fitting a Model
 Next, we shall bring everything together and train a model using the **decision tree algorithm**. To ensure that we are producing an optimized model, we will train the model using the grid search technique to optimize the `'max_depth'` parameter for the decision tree. The `'max_depth'` parameter can be thought of as how many questions the decision tree algorithm is allowed to ask about the data before making a prediction. Decision trees are part of a class of algorithms called *supervised learning algorithms*.
@@ -345,7 +384,7 @@ def fit_model(X, y):
     cv_sets = ShuffleSplit(X.shape[0], n_iter = 10, test_size = 0.20, random_state = 0)
 
     # Create a decision tree regressor object
-    regressor = DecisionTreeRegressor()
+    regressor = DecisionTreeRegressor(random_state=0)
 
     # Create a dictionary for the parameter 'max_depth' with a range from 1 to 10
     params = {'max_depth' : range(1, 11)}
@@ -386,6 +425,8 @@ print "Parameter 'max_depth' is {} for the optimal model.".format(reg.get_params
 
 Hence, we can now conclusively say that the optimal model has a max depth of 4.
 
+**Note:** Since we are using ShuffleSplit, Grid Search searches for the highest validation score on the different data splits.
+
 ### Predicting Selling Prices
 Now, we shall try to predict the house selling prices for the following clients : 
 
@@ -414,10 +455,104 @@ for i, price in enumerate(reg.predict(client_data)):
     Predicted selling price for Client 3's home: $891,975.00
     
 
+
+```python
+# Show the descriptive stats and box plot to compare the predictions to the descriptive stats
+plt.figure(figsize=(20, 5))
+y_ax = [[3,9],[0,40],[11,23]]
+for i, col in enumerate(features.columns):
+    plt.subplot(1, 3, i+1)
+    plt.boxplot(data[col])
+    plt.title(col)
+    for j in range(3):
+        plt.plot(1, client_data[j][i], marker="o")
+        plt.annotate('Client '+str(j+1), xy=(1,client_data[j][i]))
+        plt.ylim(y_ax[i])
+
+features.describe()
+```
+
+
+
+
+<div>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>RM</th>
+      <th>LSTAT</th>
+      <th>PTRATIO</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>count</th>
+      <td>489.000000</td>
+      <td>489.000000</td>
+      <td>489.000000</td>
+    </tr>
+    <tr>
+      <th>mean</th>
+      <td>6.240288</td>
+      <td>12.939632</td>
+      <td>18.516564</td>
+    </tr>
+    <tr>
+      <th>std</th>
+      <td>0.643650</td>
+      <td>7.081990</td>
+      <td>2.111268</td>
+    </tr>
+    <tr>
+      <th>min</th>
+      <td>3.561000</td>
+      <td>1.980000</td>
+      <td>12.600000</td>
+    </tr>
+    <tr>
+      <th>25%</th>
+      <td>5.880000</td>
+      <td>7.370000</td>
+      <td>17.400000</td>
+    </tr>
+    <tr>
+      <th>50%</th>
+      <td>6.185000</td>
+      <td>11.690000</td>
+      <td>19.100000</td>
+    </tr>
+    <tr>
+      <th>75%</th>
+      <td>6.575000</td>
+      <td>17.120000</td>
+      <td>20.200000</td>
+    </tr>
+    <tr>
+      <th>max</th>
+      <td>8.398000</td>
+      <td>37.970000</td>
+      <td>22.000000</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+![png](output_44_1.png)
+
+
 The recommended prices for Client 1, 2 and 3 would be : \$410,637.50, \$224,616.00 and \$891,975.00 respectively.
 
 **Analysis of the predictions:**
-These prices fall within the minimum and maximum prices present in the data-set. Also, the mean price is around 450k with a standard deviation of 165k, so these prices seem reasonable. Also, if we compare the three houses, the most favourable house (i.e. the one belonging to Client 3, having more rooms, lowest powerty and lowest student-teacher ratio) has been predicted to have the highest selling price. Similarly, the prices for clients 1 and 2 also seem reasonable.
+
+All 3 of the predicted prices seem reasonable. The reasons are as follows : 
+
+- **Client 1** : Client 1 RM value is in the bottom 25 percentile, LSTAT is in the top 25 percentile and PTRATIO is in bottom 25 percentile. Since the RM and LSTAT values are poor but PTRATIO value is excellent, the price of \$410k is near the median value and seems reasonable.
+- **Client 2** : Client 2 RM value is near the minimum, LSTAT is near the maximum and PTRATIO is also near the maximum. Hence, all 3 features are extremely poor and its predicted price of \$224 (which is near the minimum) seems reasonable.
+- **Client 3** : Client 3 RM value is near the maximum, and LSTAT and PTR are both near the minimum. Hence, all 3 features are extremely favorable for this client and the predicted price of \$891k (which is near the maximum value in the dataset) seems reasonable.
 
 ### Sensitivity
 An optimal model is not necessarily a robust model. Sometimes, a model is either too complex or too simple to sufficiently generalize to new data. Sometimes, a model could use a learning algorithm that is not appropriate for the structure of the data given. Other times, the data itself could be too noisy or contain too few samples to allow a model to adequately capture the target variable — i.e., the model is underfitted. 
@@ -477,7 +612,7 @@ plotTrials(features, prices, fit_model, client_data, 20)
     
 
 
-![png](output_45_1.png)
+![png](output_47_1.png)
 
 
 ### Applicability
@@ -488,6 +623,6 @@ The reasons are the following :
 
 1. The collected data is too old (1978). Features that are more important for real-estate in modern times might be significantly different than those in 1978. Moreover, it's difficult to accurately correct the prices for inflation and changing trends.
 2. The no. of features used in the model might not be sufficient to fully predict the prices. There could be several other important features such as - plot area, maintenance of the house, transportation facilities, etc.
-3. The range in prices for multiple predictions of the same client, seems to be too high (approx $70k). There needs to be more consistency.
+3. The range in prices for multiple predictions of the same client, seems to be too high (approx $100k). There needs to be more consistency.
 4. The weightage of the factors that are important for predicting house prices would probably be different for rural cities & urban cities.
 5. It's not always fair to judge the price of an individual home based on the characteristics of the entire neighbourhood. While the neighbourhood certainly plays a very important role, there could be some houses that really stand out and deserve a much higher or lower price.
